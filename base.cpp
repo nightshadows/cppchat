@@ -55,8 +55,6 @@ void ChatBase::handle_connection(int sock) {
     while (running) {
         std::vector<uint8_t> buffer(sizeof(MessageHeader));
         ssize_t header_bytes = recv(sock, buffer.data(), sizeof(MessageHeader), MSG_WAITALL);
-        std::cout << "header_bytes: " << header_bytes << std::endl;
-        std::cout << "MessageHeader size: " << sizeof(MessageHeader) << std::endl;
         if (header_bytes <= 0 || !running) break;
 
         if (header_bytes != static_cast<ssize_t>(sizeof(MessageHeader))) {
@@ -66,31 +64,26 @@ void ChatBase::handle_connection(int sock) {
 
         Message msg;
         msg.deserializeHeader(buffer.data(), sizeof(MessageHeader));
-        std::cout << "msg.header.data_size: " << msg.header.data_size << std::endl;
-        std::cout << "msg.header.message_id: " << msg.header.message_id << std::endl;
-        std::cout << "msg.header.type: " << static_cast<int>(msg.header.type) << std::endl;
 
         // Read the data if present
         if (msg.header.data_size > 0) {
-            std::cout << "reading data..." << std::endl;
             std::vector<uint8_t> buffer(msg.header.data_size);
             ssize_t data_bytes = recv(sock, buffer.data(), msg.header.data_size, MSG_WAITALL);
             if (data_bytes < static_cast<ssize_t>(msg.header.data_size)) {
-                std::cout << "Incomplete data received\n";
+                std::cerr << "Incomplete data received\n";
                 continue;
             }
 
             msg.deserializeData(buffer.data(), msg.header.data_size);
-            std::cout << "msg.data: " << msg.data << std::endl;
+        }
 
-            if (msg.header.type == MessageType::DATA) {
-                std::cout << "Received message " << msg.header.message_id
-                        << ": " << msg.data << std::endl;
-                if (!running) break;
-                send_ack(sock, msg.header.message_id);
-            } else if (msg.header.type == MessageType::ACK) {
-                std::cout << "Got ack for message " << msg.header.message_id << std::endl;
-            }
+        if (msg.header.type == MessageType::DATA) {
+            std::cout << msg.header.message_id
+                    << ": " << msg.data << std::endl;
+            if (!running) break;
+            send_ack(sock, msg.header.message_id);
+        } else if (msg.header.type == MessageType::ACK) {
+            std::cout << "Got ack for message " << msg.header.message_id << std::endl;
         }
     }
 }
@@ -118,7 +111,7 @@ void ChatBase::setup_signal_handlers() {
     }
 }
 
-void ChatBase::send_message(const std::string& text) {
+void ChatBase::send_message(const std::string& text, int socket) {
     if (text.length() > Message::MAX_DATA_SIZE) {
         std::cerr << "Message too long (max " << Message::MAX_DATA_SIZE << " bytes)\n";
         return;
@@ -126,8 +119,7 @@ void ChatBase::send_message(const std::string& text) {
 
     Message msg(MessageType::DATA, get_next_message_id(), text);
     auto serialized = msg.serialize();
-
-    if (send(sockfd, serialized.data(), serialized.size(), 0) < 0) {
+    if (send(socket, serialized.data(), serialized.size(), 0) < 0) {
         throw std::runtime_error("Failed to send message");
     }
 }

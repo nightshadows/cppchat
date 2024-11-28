@@ -31,7 +31,7 @@ void ChatClient::run(const std::string& server_address) {
     while (running && std::getline(std::cin, input)) {
         if (!running) break;
         try {
-            send_message(input);
+            send_message(input, sockfd);
         } catch (const std::exception& e) {
             std::cerr << "Error: " << e.what() << std::endl;
             break;

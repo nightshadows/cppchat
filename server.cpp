@@ -44,7 +44,18 @@ void ChatServer::run() {
 
     receive_thread = std::thread([this]() { run_server_loop(); });
 
-    while (running) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::string input;
+    while (running && std::getline(std::cin, input)) {
+        if (!running) break;
+        if (client_sock >= 0) {
+            try {
+                send_message(input, client_sock);
+            } catch (const std::exception& e) {
+                std::cerr << "Error: " << e.what() << std::endl;
+                break;
+            }
+        } else {
+            std::cout << "No client connected. Message not sent." << std::endl;
+        }
     }
 }

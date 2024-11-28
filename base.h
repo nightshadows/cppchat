@@ -24,5 +24,5 @@ protected:
     ChatBase();
     virtual ~ChatBase();
     void handle_connection(int sock);
-    void send_message(const std::string& text);
+    void send_message(const std::string& text, int socket);
 };

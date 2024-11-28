@@ -33,7 +33,6 @@ public:
         std::vector<uint8_t> buffer(sizeof(MessageHeader) + header.data_size);
         memcpy(buffer.data(), &header, sizeof(MessageHeader));
         if (!data.empty()) {
-            std::cout << "data.size(): " << data.size() << std::endl;
             memcpy(buffer.data() + sizeof(MessageHeader), data.c_str(), data.size());
         }
         return buffer;

@@ -27,6 +27,7 @@
 *.lib
 
 # Executables
+chat
 *.exe
 *.out
 *.app
