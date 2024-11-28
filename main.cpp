@@ -2,6 +2,7 @@
 #include "client.h"
 
 #include <getopt.h>
+#include <iostream>
 
 int main(int argc, char* argv[]) {
     static struct option long_options[] = {

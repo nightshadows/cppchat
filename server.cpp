@@ -1,6 +1,11 @@
 #include "server.h"
 #include "message.h"
 
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <iostream>
+#include <unistd.h>
+
 ChatServer::~ChatServer() {
     if (client_sock >= 0) {
         shutdown(client_sock, SHUT_RDWR);

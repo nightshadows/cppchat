@@ -2,7 +2,6 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include <iostream>
 
 enum class MessageType : uint8_t {
     DATA = 1,

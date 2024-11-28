@@ -4,6 +4,7 @@
 #include <signal.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <iostream>
 
 const int ChatBase::PORT = 14000;
 std::atomic<bool> ChatBase::running{true};
@@ -28,7 +29,7 @@ ChatBase::ChatBase() {
 }
 
 ChatBase::~ChatBase() {
-    running = false;
+    running.store(false);
 
     if (sockfd >= 0) {
         shutdown(sockfd, SHUT_RDWR);
@@ -90,7 +91,7 @@ void ChatBase::handle_connection(int sock) {
 
 void ChatBase::signal_handler(int sig) {
     std::cout << "\nReceived signal " << sig << ", shutting down...\n" << std::flush;
-    running = false;
+    running.store(false);
 
     if (instance && instance->sockfd >= 0) {
         shutdown(instance->sockfd, SHUT_RDWR);
