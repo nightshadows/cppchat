@@ -1,3 +1,8 @@
+/*
+    This is the client class for the chat client.
+    It handles the client side of the chat - connects to the server and sends messages to it.
+*/
+
 #include "client.h"
 #include "message.h"
 
@@ -16,7 +21,7 @@ void ChatClient::run_client_loop() {
 void ChatClient::run(const std::string& server_address) {
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(ChatBase::PORT);
+    server_addr.sin_port = htons(this->port);
 
     struct hostent* host = gethostbyname(server_address.c_str());
     if (host == nullptr) {

@@ -1,3 +1,9 @@
+/*
+    This is the base class for the chat server and client.
+    It handles the socket connection and the message passing.
+    It also handles the signal handlers for SIGINT and SIGTERM.
+*/
+
 #include "base.h"
 #include "message.h"
 
@@ -6,9 +12,7 @@
 #include <unistd.h>
 #include <iostream>
 
-const int ChatBase::PORT = 14000;
 std::atomic<bool> ChatBase::running{true};
-const char ChatBase::ack[] = "message received";
 ChatBase* ChatBase::instance = nullptr;
 
 ChatBase::ChatBase() {
@@ -78,19 +82,36 @@ void ChatBase::handle_connection(int sock) {
             msg.deserializeData(buffer.data(), msg.header.data_size);
         }
 
+        // Output the message to the console
         if (msg.header.type == MessageType::DATA) {
             std::cout << msg.header.message_id
                     << ": " << msg.data << std::endl;
             if (!running) break;
             send_ack(sock, msg.header.message_id);
         } else if (msg.header.type == MessageType::ACK) {
-            std::cout << "Got ack for message " << msg.header.message_id << std::endl;
+            // Output the ack to the console, include the round trip time
+            auto end = std::chrono::high_resolution_clock::now();
+            auto start = message_timestamps[msg.header.message_id];
+            message_timestamps.erase(msg.header.message_id);
+            if (start.time_since_epoch().count() == 0) {
+                std::cout << "Got ack for unknown message " << msg.header.message_id << std::endl;
+            } else {
+                auto time_since_start = end - start;
+                // Use microseconds if the time is less than 1ms
+                if (std::chrono::duration_cast<std::chrono::milliseconds>(time_since_start).count() > 0) {
+                    std::cout << "Got ack for message " << msg.header.message_id << " in " << std::chrono::duration_cast<std::chrono::milliseconds>(time_since_start).count() << "ms" << std::endl;
+                } else {
+                    std::cout << "Got ack for message " << msg.header.message_id << " in " << std::chrono::duration_cast<std::chrono::microseconds>(time_since_start).count() << "µs" << std::endl;
+                }
+            }
         }
     }
 }
 
 void ChatBase::signal_handler(int sig) {
     std::cout << "\nReceived signal " << sig << ", shutting down...\n" << std::flush;
+    // Set the running flag to false to stop the worker thread
+    // This way we can exit gracefully if user presses Ctrl+C
     running.store(false);
 
     if (instance && instance->sockfd >= 0) {
@@ -118,6 +139,13 @@ void ChatBase::send_message(const std::string& text, int socket) {
         return;
     }
 
+    // One possible extension for the future is to support sending a longer message in chunks.
+    // We would need to change the protocol to support this, and add a way to reassemble the message on the receiving end.
+
+    auto start = std::chrono::high_resolution_clock::now();
+    // Store the start time for the message
+    // This could be supported by the protocol, but it is more efficient to do it like this as we dont really need the timestamp for anything else.
+    message_timestamps[next_message_id] = start;
     Message msg(MessageType::DATA, get_next_message_id(), text);
     auto serialized = msg.serialize();
     if (send(socket, serialized.data(), serialized.size(), 0) < 0) {
@@ -127,4 +155,12 @@ void ChatBase::send_message(const std::string& text, int socket) {
 
 uint32_t ChatBase::get_next_message_id() {
     return next_message_id++;
+}
+
+void ChatBase::set_port(int port) {
+    this->port = port;
+}
+
+void ChatBase::clear_message_timestamps() {
+    message_timestamps.clear();
 }

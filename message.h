@@ -1,3 +1,8 @@
+/*
+    This file contains the message class, which is used to serialize and deserialize messages between the server and client.
+    By design, the message copies and stores data, sacrificing some performance for safety and future extensibility.
+*/
+
 #pragma once
 #include <cstdint>
 #include <string>
@@ -27,25 +32,23 @@ public:
 
     Message() : header(), data() {}
 
-    // Serialize message to binary format
     std::vector<uint8_t> serialize() const {
         std::vector<uint8_t> buffer(sizeof(MessageHeader) + header.data_size);
         memcpy(buffer.data(), &header, sizeof(MessageHeader));
-        if (!data.empty()) {
-            memcpy(buffer.data() + sizeof(MessageHeader), data.c_str(), data.size());
+        if (header.data_size > 0) {
+            memcpy(buffer.data() + sizeof(MessageHeader), data.c_str(), header.data_size);
         }
         return buffer;
     }
 
-    void deserializeHeader(const uint8_t* buffer, size_t size) {
+    const uint8_t* deserializeHeader(const uint8_t* buffer, size_t size) {
         if (size != sizeof(MessageHeader)) {
             throw std::runtime_error("Invalid header size");
         }
-        const MessageHeader* header = reinterpret_cast<const MessageHeader*>(buffer);
-        this->header = *header;
+        this->header = *reinterpret_cast<const MessageHeader*>(buffer);
+        return buffer + sizeof(MessageHeader);
     }
 
-    // Deserialize from binary data
     void deserializeData(const uint8_t* buffer, size_t size) {
         if (header.data_size > 0) {
             if (size < header.data_size) {
@@ -56,5 +59,7 @@ public:
     }
 
     MessageHeader header;
+    // The data is stored in a string as the only data we send is something the user typed in the terminal
+    // This could be changed to a vector of bytes if we ever need to send something other than user input
     std::string data;
 };

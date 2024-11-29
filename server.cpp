@@ -1,3 +1,8 @@
+/*
+    This is the server class for the chat server.
+    It handles the server side of the chat - main difference from the client is that it listens for connections.
+*/
+
 #include "server.h"
 #include "message.h"
 
@@ -27,7 +32,10 @@ void ChatServer::run_server_loop() {
             break;
         }
 
+        std::cout << "Client connected" << std::endl;
         handle_connection(client_sock);
+        std::cout << "Client disconnected" << std::endl;
+        clear_message_timestamps();
         close(client_sock);
         client_sock = -1;
     }
@@ -37,7 +45,7 @@ void ChatServer::run() {
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
-    server_addr.sin_port = htons(ChatBase::PORT);
+    server_addr.sin_port = htons(this->port);
 
     if (bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
         std::cerr << "Errno: " << errno << " - " << strerror(errno) << std::endl;
@@ -45,7 +53,7 @@ void ChatServer::run() {
     }
 
     listen(sockfd, 1);
-    std::cout << "Server listening on port " << ChatBase::PORT << std::endl;
+    std::cout << "Server listening on port " << this->port << std::endl;
 
     receive_thread = std::thread([this]() { run_server_loop(); });
 
