@@ -1,5 +1,5 @@
 /*
-    This is the client class for the chat client.
+    This is the client class for the 1-1 chat app.
     It handles the client side of the chat - connects to the server and sends messages to it.
 */
 
